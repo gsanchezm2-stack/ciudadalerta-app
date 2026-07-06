@@ -4,7 +4,8 @@ import {
   FlatList, Alert, SafeAreaView, StatusBar
 } from 'react-native';
 
-const API = 'http://192.168.1.92:5000';
+// ✅ CAMBIADO: Ahora usa la URL de ngrok
+const API = 'https://handler-keep-ecology.ngrok-free.dev';
 
 export default function App() {
   const [alertas, setAlertas] = useState([]);
