@@ -1,0 +1,55 @@
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import * as SecureStore from 'expo-secure-store';
+
+const AuthContext = createContext(null);
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider');
+  return ctx;
+}
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const storedToken = await SecureStore.getItemAsync('ciudadalerta_token');
+        const storedUser = await SecureStore.getItemAsync('ciudadalerta_user');
+        if (storedToken && storedUser) {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+        }
+      } catch {
+        // silent
+      } finally {
+        setReady(true);
+      }
+    })();
+  }, []);
+
+  const login = useCallback(async (userData, tokenStr) => {
+    setUser(userData);
+    setToken(tokenStr);
+    await SecureStore.setItemAsync('ciudadalerta_token', tokenStr);
+    await SecureStore.setItemAsync('ciudadalerta_user', JSON.stringify(userData));
+  }, []);
+
+  const logout = useCallback(async () => {
+    setUser(null);
+    setToken(null);
+    await SecureStore.deleteItemAsync('ciudadalerta_token');
+    await SecureStore.deleteItemAsync('ciudadalerta_user');
+  }, []);
+
+  if (!ready) return null;
+
+  return (
+    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!user }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
