@@ -9,7 +9,7 @@ import AlertaList from './src/components/AlertaList';
 import AlertaForm from './src/components/AlertaForm';
 import AlertaDetail from './src/components/AlertaDetail';
 import AdminPanel from './src/components/AdminPanel';
-import { styles } from './src/styles';
+import { styles, COLORS } from './src/styles';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
@@ -19,6 +19,13 @@ const SCREENS = {
   ADMIN: 'admin'
 };
 
+const NAV_ITEMS = [
+  { key: 'dashboard', label: 'Tablero', icon: '\u{1F4CA}' },
+  { key: 'alertas', label: 'Alertas', icon: '\u{1F514}' },
+  { key: 'nueva', label: 'Nueva', icon: '\u{2795}' },
+  { key: 'perfil', label: 'Perfil', icon: '\u{1F464}' },
+];
+
 function AuthGate() {
   const { isAuthenticated, user, logout } = useAuth();
   const [authVista, setAuthVista] = useState('login');
@@ -27,8 +34,8 @@ function AuthGate() {
 
   if (!isAuthenticated) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#065A82" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
         <View style={styles.header}>
           <Text style={styles.headerTitle}>CiudadAlerta</Text>
           <Text style={styles.headerSubtitle}>Plataforma de alertas ciudadanas</Text>
@@ -46,17 +53,22 @@ function AuthGate() {
     const route = { params: { id: selectedAlertaId } };
     const navigation = { goBack: () => setSelectedAlertaId(null) };
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
         <AlertaDetail route={route} navigation={navigation} />
       </SafeAreaView>
     );
   }
 
+  const allNav = tienePermiso(user.rol, 'usuarios:ver')
+    ? [...NAV_ITEMS, { key: 'admin', label: 'Admin', icon: '\u{2699}\u{FE0F}' }]
+    : NAV_ITEMS;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#065A82" />
-      <View style={[styles.header, { padding: 12 }]}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
           <Text style={styles.headerTitle}>CiudadAlerta</Text>
           <TouchableOpacity style={styles.btnLogout} onPress={logout}>
             <Text style={styles.btnLogoutText}>Salir</Text>
@@ -64,38 +76,29 @@ function AuthGate() {
         </View>
       </View>
       <View style={styles.nav}>
-        <TouchableOpacity style={[styles.navBtn, screen === SCREENS.DASHBOARD && styles.navBtnActive]}
-          onPress={() => setScreen(SCREENS.DASHBOARD)}>
-          <Text style={[styles.navText, screen === SCREENS.DASHBOARD && styles.navTextActive]}>Dashboard</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.navBtn, screen === SCREENS.ALERTAS && styles.navBtnActive]}
-          onPress={() => setScreen(SCREENS.ALERTAS)}>
-          <Text style={[styles.navText, screen === SCREENS.ALERTAS && styles.navTextActive]}>Alertas</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.navBtn, screen === SCREENS.NUEVA && styles.navBtnActive]}
-          onPress={() => setScreen(SCREENS.NUEVA)}>
-          <Text style={[styles.navText, screen === SCREENS.NUEVA && styles.navTextActive]}>Nueva</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.navBtn, screen === SCREENS.PERFIL && styles.navBtnActive]}
-          onPress={() => setScreen(SCREENS.PERFIL)}>
-          <Text style={[styles.navText, screen === SCREENS.PERFIL && styles.navTextActive]}>Perfil</Text>
-        </TouchableOpacity>
-        {tienePermiso(user.rol, 'usuarios:ver') && (
-          <TouchableOpacity style={[styles.navBtn, screen === SCREENS.ADMIN && styles.navBtnActive]}
-            onPress={() => setScreen(SCREENS.ADMIN)}>
-            <Text style={[styles.navText, screen === SCREENS.ADMIN && styles.navTextActive]}>Admin</Text>
-          </TouchableOpacity>
-        )}
+        {allNav.map(item => {
+          const active = screen === item.key;
+          return (
+            <TouchableOpacity
+              key={item.key}
+              style={[styles.navBtn, active && styles.navBtnActive]}
+              onPress={() => setScreen(item.key)}
+            >
+              <Text style={{ fontSize: 14, marginBottom: 2 }}>{item.icon}</Text>
+              <Text style={[styles.navText, active && styles.navTextActive]}>{item.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
-      {screen === SCREENS.DASHBOARD && <Dashboard />}
-      {screen === SCREENS.ALERTAS && (
-        <ScrollView>
+      <View style={{ flex: 1 }}>
+        {screen === SCREENS.DASHBOARD && <Dashboard />}
+        {screen === SCREENS.ALERTAS && (
           <AlertaList onViewDetail={(id) => setSelectedAlertaId(id)} />
-        </ScrollView>
-      )}
-      {screen === SCREENS.NUEVA && <AlertaForm onAlertaCreada={() => setScreen(SCREENS.ALERTAS)} />}
-      {screen === SCREENS.PERFIL && <PerfilScreen user={user} />}
-      {screen === SCREENS.ADMIN && <AdminPanel />}
+        )}
+        {screen === SCREENS.NUEVA && <AlertaForm onAlertaCreada={() => setScreen(SCREENS.ALERTAS)} />}
+        {screen === SCREENS.PERFIL && <PerfilScreen user={user} />}
+        {screen === SCREENS.ADMIN && <AdminPanel />}
+      </View>
     </SafeAreaView>
   );
 }
@@ -103,29 +106,30 @@ function AuthGate() {
 function PerfilScreen({ user }) {
   const { logout } = useAuth();
   return (
-    <View style={{ flex: 1, padding: 20, alignItems: 'center' }}>
-      <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#065A82', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-        <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>{user.nombre?.charAt(0).toUpperCase()}</Text>
+    <ScrollView style={{ backgroundColor: COLORS.bg }} contentContainerStyle={{ alignItems: 'center', padding: 16 }}>
+      <View style={styles.perfilCard}>
+        <View style={styles.perfilAvatar}>
+          <Text style={styles.perfilAvatarText}>{user.nombre?.charAt(0).toUpperCase()}</Text>
+        </View>
+        <View style={{ width: '100%' }}>
+          <View style={styles.perfilRow}>
+            <Text style={styles.perfilLabel}>Nombre</Text>
+            <Text style={styles.perfilValue}>{user.nombre}</Text>
+          </View>
+          <View style={styles.perfilRow}>
+            <Text style={styles.perfilLabel}>Email</Text>
+            <Text style={styles.perfilValue}>{user.email}</Text>
+          </View>
+          <View style={styles.perfilRow}>
+            <Text style={styles.perfilLabel}>Rol</Text>
+            <Text style={styles.perfilValue}>{user.rol}</Text>
+          </View>
+        </View>
       </View>
-      <View style={{ width: '100%', maxWidth: 320 }}>
-        <Row label="Nombre" value={user.nombre} />
-        <Row label="Email" value={user.email} />
-        <Row label="Rol" value={user.rol} />
-      </View>
-      <TouchableOpacity style={{ backgroundColor: '#dc2626', padding: 14, borderRadius: 8, alignItems: 'center', width: '100%', maxWidth: 320, marginTop: 24 }}
-        onPress={logout}>
-        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cerrar sesion</Text>
+      <TouchableOpacity style={[styles.btnDanger, { width: '100%', maxWidth: 480, marginTop: 16 }]} onPress={logout}>
+        <Text style={styles.btnDangerText}>Cerrar sesion</Text>
       </TouchableOpacity>
-    </View>
-  );
-}
-
-function Row({ label, value }) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' }}>
-      <Text style={{ color: '#6b7280' }}>{label}</Text>
-      <Text style={{ fontWeight: '500', color: '#1f2937' }}>{value}</Text>
-    </View>
+    </ScrollView>
   );
 }
 

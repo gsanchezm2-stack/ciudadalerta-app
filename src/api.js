@@ -3,7 +3,15 @@ import { API_URL } from './config';
 async function request(endpoint, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
 
-  const res = await fetch(`${API_URL}/api${endpoint}`, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(`${API_URL}/api${endpoint}`, { ...options, headers });
+  } catch (err) {
+    if (err.message === 'Network request failed' || err.message === 'Failed to fetch' || err.name === 'TypeError') {
+      throw new Error('Sin conexion al servidor. Verifica tu red WiFi y que el servidor este activo.');
+    }
+    throw new Error('Error de conexion. Intente de nuevo.');
+  }
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -98,5 +106,26 @@ export function cambiarRolUsuario(token, id, rol) {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ rol })
+  });
+}
+
+export function getComentarios(token, alertaId) {
+  return request(`/alertas/${alertaId}/comentarios`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+}
+
+export function crearComentario(token, alertaId, texto) {
+  return request(`/alertas/${alertaId}/comentarios`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ texto })
+  });
+}
+
+export function eliminarComentario(token, id) {
+  return request(`/comentarios/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` }
   });
 }

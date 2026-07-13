@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { getUsuarios, cambiarRolUsuario } from '../api';
 import { tienePermiso } from '../permisos';
-import { styles } from '../styles';
+import { styles, COLORS } from '../styles';
 
 const ROLES = ['ciudadano', 'autoridad', 'administrador'];
+
+const ROLE_BADGE = {
+  ciudadano: { bg: '#dbeafe', text: '#1e40af' },
+  autoridad: { bg: '#dcfce7', text: '#166534' },
+  administrador: { bg: '#fee2e2', text: '#991b1b' },
+};
 
 export default function AdminPanel() {
   const { user, token } = useAuth();
@@ -48,54 +54,64 @@ export default function AdminPanel() {
 
   if (!tienePermiso(user.rol, 'usuarios:ver')) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: '#888' }}>No tienes acceso a esta seccion</Text>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bg }}>
+        <Text style={{ color: COLORS.textMuted }}>No tienes acceso a esta seccion</Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
-      <View style={{ padding: 16 }}>
-        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827' }}>Panel de Administracion</Text>
-        <Text style={{ color: '#6b7280', fontSize: 13, marginTop: 4 }}>Gestionar usuarios y roles</Text>
+    <View style={{ flex: 1, backgroundColor: COLORS.bg, padding: 16 }}>
+      <View style={styles.pageHeader}>
+        <View>
+          <Text style={styles.pageTitle}>Panel de Administracion</Text>
+          <Text style={styles.pageSubtitle}>Gestionar usuarios y roles</Text>
+        </View>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#065A82" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={usuarios}
           keyExtractor={item => item._id}
-          contentContainerStyle={{ paddingHorizontal: 16 }}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Text style={{ fontWeight: '600', color: '#111827', fontSize: 15 }}>{item.nombre}</Text>
-                <View style={[styles.badge,
-                  item.rol === 'administrador' ? { backgroundColor: '#fef2f2' } :
-                  item.rol === 'autoridad' ? { backgroundColor: '#dbeafe' } : { backgroundColor: '#f3f4f6' }
-                ]}>
-                  <Text style={{ fontSize: 10, fontWeight: '600' }}>{item.rol}</Text>
+          contentContainerStyle={{ paddingBottom: 24 }}
+          renderItem={({ item }) => {
+            const roleColor = ROLE_BADGE[item.rol] || ROLE_BADGE.ciudadano;
+            return (
+              <View style={styles.card}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <Text style={{ fontWeight: '600', color: COLORS.text, fontSize: 15 }}>{item.nombre}</Text>
+                  <View style={[styles.roleBadge, { backgroundColor: roleColor.bg }]}>
+                    <Text style={[styles.roleBadgeText, { color: roleColor.text }]}>{item.rol}</Text>
+                  </View>
                 </View>
-              </View>
-              <Text style={{ color: '#6b7280', fontSize: 13 }}>{item.email}</Text>
+                <Text style={{ color: COLORS.textSecondary, fontSize: 13 }}>{item.email}</Text>
+                {item.createdAt && (
+                  <Text style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 4 }}>
+                    Registro: {new Date(item.createdAt).toLocaleDateString('es-ES')}
+                  </Text>
+                )}
 
-              {item._id !== user.id && (
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                  {ROLES.filter(r => r !== item.rol).map(r => (
-                    <TouchableOpacity
-                      key={r}
-                      style={{ backgroundColor: '#f3f4f6', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 }}
-                      onPress={() => handleRolChange(item._id, item.nombre, r)}
-                    >
-                      <Text style={{ fontSize: 11, color: '#374151' }}>{r}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
+                {item._id !== user.id && (
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                    {ROLES.filter(r => r !== item.rol).map(r => {
+                      const rc = ROLE_BADGE[r] || ROLE_BADGE.ciudadano;
+                      return (
+                        <TouchableOpacity
+                          key={r}
+                          style={[styles.btnSm, { backgroundColor: COLORS.card, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' }]}
+                          onPress={() => handleRolChange(item._id, item.nombre, r)}
+                        >
+                          <Text style={{ fontSize: 12, color: COLORS.text, fontWeight: '600' }}>{r}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            );
+          }}
         />
       )}
     </View>

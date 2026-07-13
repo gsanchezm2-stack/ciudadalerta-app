@@ -3,7 +3,23 @@ import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator } from
 import { useAuth } from '../context/AuthContext';
 import { getAlertas, eliminarAlerta } from '../api';
 import { tienePermiso } from '../permisos';
-import { styles } from '../styles';
+import { styles, COLORS } from '../styles';
+
+const BADGE_COLORS = {
+  pendiente: { bg: '#fef3c7', text: '#92400e' },
+  en_revision: { bg: '#dbeafe', text: '#1e40af' },
+  resuelto: { bg: '#dcfce7', text: '#166534' },
+};
+
+const TIPO_COLORS = {
+  Seguridad: { bg: '#fee2e2', text: '#991b1b' },
+  Infraestructura: { bg: '#fef3c7', text: '#92400e' },
+  Movilidad: { bg: '#dbeafe', text: '#1e40af' },
+  Ambiental: { bg: '#dcfce7', text: '#166534' },
+  Salud: { bg: '#f3e8ff', text: '#6b21a8' },
+  Educacion: { bg: '#e0e7ff', text: '#3730a3' },
+  Otro: { bg: '#e5e7eb', text: '#4b5563' },
+};
 
 export default function AlertaList({ onViewDetail }) {
   const { user, token } = useAuth();
@@ -42,44 +58,44 @@ export default function AlertaList({ onViewDetail }) {
     ]);
   };
 
-  const badgeStyle = (estado) => {
-    if (estado === 'resuelto') return styles.badgeResolved;
-    if (estado === 'en_revision') return styles.badgeReview;
-    return styles.badgePending;
-  };
-
   return (
     <FlatList
       data={alertas}
       keyExtractor={item => item._id}
-      style={styles.lista}
+      style={{ backgroundColor: COLORS.bg }}
+      contentContainerStyle={{ padding: 16 }}
       ListEmptyComponent={
         loading
-          ? <ActivityIndicator size="large" color="#065A82" style={{ marginTop: 40 }} />
+          ? <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
           : <Text style={styles.empty}>No hay alertas registradas</Text>
       }
-      renderItem={({ item }) => (
-        <TouchableOpacity onPress={() => onViewDetail && onViewDetail(item._id)}>
-          <View style={styles.card}>
+      renderItem={({ item }) => {
+        const badge = BADGE_COLORS[item.estado] || BADGE_COLORS.pendiente;
+        const tipo = TIPO_COLORS[item.tipo] || TIPO_COLORS.Otro;
+        return (
+          <TouchableOpacity style={styles.card} onPress={() => onViewDetail && onViewDetail(item._id)}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                <View style={[styles.badge, badgeStyle(item.estado)]}>
-                  <Text style={{ fontSize: 10, fontWeight: '600' }}>{item.estado?.replace('_', ' ') || 'pendiente'}</Text>
-                </View>
-                <Text style={styles.cardTipo}>{item.tipo}</Text>
+              <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+                <Text style={[styles.badgeText, { color: badge.text }]}>{item.estado?.replace('_', ' ') || 'pendiente'}</Text>
               </View>
+              <Text style={{ fontSize: 12, color: COLORS.textMuted }}>{new Date(item.fecha).toLocaleDateString('es-ES')}</Text>
+            </View>
+            <View style={[styles.tipoBadge, { backgroundColor: tipo.bg, alignSelf: 'flex-start', marginBottom: 8 }]}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: tipo.text }}>{item.tipo}</Text>
+            </View>
+            <Text style={styles.cardDesc}>{item.descripcion}</Text>
+            <Text style={styles.cardSector}>{item.sector}</Text>
+            <View style={styles.cardFooter}>
+              <Text style={styles.cardAuthor}>Por: {item.autor?.nombre || 'Anonimo'}</Text>
               {puedeEliminar && (
                 <TouchableOpacity onPress={() => handleEliminar(item._id)}>
                   <Text style={styles.btnEliminar}>Eliminar</Text>
                 </TouchableOpacity>
               )}
             </View>
-            <Text style={styles.cardDesc}>{item.descripcion}</Text>
-            <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>{item.sector}</Text>
-            <Text style={{ color: '#bbb', fontSize: 11, marginTop: 2 }}>Por: {item.autor?.nombre || 'Anonimo'}</Text>
-          </View>
-        </TouchableOpacity>
-      )}
+          </TouchableOpacity>
+        );
+      }}
     />
   );
 }

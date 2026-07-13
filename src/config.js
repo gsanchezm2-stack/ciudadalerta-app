@@ -1,9 +1,13 @@
 import { Platform } from 'react-native';
 
-const DEV_API = Platform.OS === 'android'
-  ? 'http://10.0.2.2:5000'
-  : 'http://localhost:5000';
+let API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-const API_URL = DEV_API;
+if (!API_URL) {
+  if (Platform.OS === 'android') {
+    API_URL = 'http://10.0.2.2:5000';
+  } else {
+    API_URL = 'http://localhost:5000';
+  }
+}
 
 export { API_URL };

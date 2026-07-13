@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { API_URL } from '../config';
 
 const AuthContext = createContext(null);
 
@@ -20,8 +21,21 @@ export function AuthProvider({ children }) {
         const storedToken = await SecureStore.getItemAsync('ciudadalerta_token');
         const storedUser = await SecureStore.getItemAsync('ciudadalerta_user');
         if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+          try {
+            const res = await fetch(`${API_URL}/api/auth/me`, {
+              headers: { Authorization: `Bearer ${storedToken}` }
+            });
+            if (res.ok) {
+              setToken(storedToken);
+              setUser(JSON.parse(storedUser));
+            } else {
+              await SecureStore.deleteItemAsync('ciudadalerta_token');
+              await SecureStore.deleteItemAsync('ciudadalerta_user');
+            }
+          } catch {
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
+          }
         }
       } catch {
         // silent
